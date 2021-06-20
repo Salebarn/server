@@ -7249,6 +7249,30 @@ Item *find_producing_item(Item *item, st_select_lex *sel)
   return NULL;
 }
 
+
+/*
+  @brief Check if this item cannot be pushed down into derived table
+
+  @detail
+     This function checks if derived_field_transformer_for_where() will
+     fail. It will fail if the "producing item" (column in the derived table)
+     cannot be cloned.
+
+  @return
+    false - Ok, can be pushed
+    true  - Cannot be pushed
+*/
+
+bool Item_field::check_non_pushable_processor(void *arg)
+{
+  st_select_lex *sel= (st_select_lex *)arg;
+  Item *producing_item= find_producing_item(this, sel);
+  if (producing_item)
+    return producing_item->walk(&Item::check_non_cloneable_processor, 0, 0);
+  return false; // Ok
+}
+
+
 Item *Item_field::derived_field_transformer_for_where(THD *thd, uchar *arg)
 {
   st_select_lex *sel= (st_select_lex *)arg;

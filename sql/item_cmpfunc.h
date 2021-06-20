@@ -2135,6 +2135,7 @@ public:
   const char *func_name() const { return "regexp"; }
   enum precedence precedence() const { return IN_PRECEDENCE; }
   Item *get_copy(THD *thd, MEM_ROOT *mem_root) { return 0; }
+  bool check_non_cloneable_processor(void *arg) { return true; }
   void print(String *str, enum_query_type query_type)
   {
     print_op(str, query_type);
@@ -2163,6 +2164,7 @@ public:
   bool fix_length_and_dec();
   const char *func_name() const { return "regexp_instr"; }
   Item *get_copy(THD *thd, MEM_ROOT *mem_root) { return 0; }
+  bool check_non_cloneable_processor(void *arg) { return true; }
 };
 
 
@@ -2421,6 +2423,7 @@ public:
   void set_context_field(Item_field *ctx_field) { context_field= ctx_field; }
   void set_link_equal_fields(bool flag) { link_equal_fields= flag; }
   Item* get_copy(THD *thd, MEM_ROOT *mem_root) { return 0; }
+  bool check_non_cloneable_processor(void *arg) override { return true; }
   /*
     This does not comply with the specification of the virtual method,
     but Item_equal items are processed distinguishly anyway

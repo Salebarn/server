@@ -2480,6 +2480,7 @@ public:
     return TRUE;
   }
   Item *get_copy(THD *thd, MEM_ROOT *mem_root) { return 0; }
+  bool check_non_cloneable_processor(void *arg) override { return true; }
   bool eval_not_null_tables(void *opt_arg)
   {
     not_null_tables_cache= 0;

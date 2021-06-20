@@ -1829,6 +1829,12 @@ public:
   */
   virtual bool check_valid_arguments_processor(void *arg) { return 0; }
   virtual bool update_vcol_processor(void *arg) { return 0; }
+
+  /* Return true if the item can NOT be pushed down into a derived table */
+  virtual bool check_non_pushable_processor(void *arg) { return 0; }
+
+  /* Return true if the item cannot be cloned (get_copy() will return NULL) */
+  virtual bool check_non_cloneable_processor(void *arg) { return 0; }
   /*============== End of Item processor list ======================*/
 
   virtual Item *get_copy(THD *thd, MEM_ROOT *mem_root)=0;
@@ -2894,6 +2900,8 @@ public:
   friend class Item_default_value;
   friend class Item_insert_value;
   friend class st_select_lex_unit;
+
+  bool check_non_pushable_processor(void *arg) override;
 };
 
 

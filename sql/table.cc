@@ -8438,19 +8438,19 @@ double KEY::actual_rec_per_key(uint i)
   @param cond The condition whose subformulas are to be marked
   
   @details
-    This method recursively traverses the AND-OR condition cond and for each subformula
-    of the codition it checks whether it can be usable for the extraction of a condition
+    Recursively traverse the AND-OR condition cond and for each subformula
+    of the codition check whether it can be usable for the extraction of a condition
     that can be pushed into this table. The subformulas that are not usable are
     marked with the flag NO_EXTRACTION_FL.
   @note
-    This method is called before any call of TABLE_LIST::build_pushable_cond_for_table.
+    This function is called before any call of build_pushable_cond_for_table().
     The flag NO_EXTRACTION_FL set in a subformula allows to avoid building clone
     for the subformula when extracting the pushable condition.
 */ 
 
-void TABLE_LIST::check_pushable_cond_for_table(Item *cond)
+void check_pushable_cond_for_table(Item *cond,
+                                   std::function<bool(Item*)> pushable_filter)
 {
-  table_map tab_map= table->map;
   cond->clear_extraction_flag();
   if (cond->type() == Item::COND_ITEM)
   {
@@ -8460,7 +8460,7 @@ void TABLE_LIST::check_pushable_cond_for_table(Item *cond)
     Item *item;
     while ((item=li++))
     {
-      check_pushable_cond_for_table(item);
+      check_pushable_cond_for_table(item, pushable_filter);
       if (item->get_extraction_flag() !=  NO_EXTRACTION_FL)
         count++;
       else if (!and_cond)
@@ -8475,25 +8475,29 @@ void TABLE_LIST::check_pushable_cond_for_table(Item *cond)
         item->clear_extraction_flag();
     }
   }
-  else if (!cond->excl_dep_on_table(tab_map))
-    cond->set_extraction_flag(NO_EXTRACTION_FL);
+  else
+  {
+    if (!pushable_filter(cond))
+      cond->set_extraction_flag(NO_EXTRACTION_FL);
+  }
 }
 
 
 /**
   @brief
-  Build condition extractable from the given one depended only on this table
+  Build condition extractable from the given one depended only on the table
  
-  @param thd   The thread handle
-  @param cond  The condition from which the pushable one is to be extracted
-  
+  @param thd      The thread handle
+  @param tab_map  Table the condition must depend on.
+  @param cond     The condition from which the pushable one is to be extracted
+
   @details
     For the given condition cond this method finds out what condition depended
     only  on this table can be extracted from cond. If such condition C exists
     the method builds the item for it.
     The method uses the flag NO_EXTRACTION_FL set by the preliminary call of
-    the method TABLE_LIST::check_pushable_cond_for_table to figure out whether
-    a subformula depends only on this table or not.
+    check_pushable_cond_for_table() to figure out whether a subformula depends
+    only on this table or not.
   @note
     The built condition C is always implied by the condition cond
     (cond => C). The method tries to build the most restictive such
@@ -8508,9 +8512,8 @@ void TABLE_LIST::check_pushable_cond_for_table(Item *cond)
     NULL if there is no such a condition
 */ 
 
-Item* TABLE_LIST::build_pushable_cond_for_table(THD *thd, Item *cond) 
+Item* build_pushable_cond_for_table(THD *thd, table_map tab_map, Item *cond)
 {
-  table_map tab_map= table->map;
   bool is_multiple_equality= cond->type() == Item::FUNC_ITEM && 
   ((Item_func*) cond)->functype() == Item_func::MULT_EQUAL_FUNC;
   if (cond->get_extraction_flag() == NO_EXTRACTION_FL)
@@ -8539,7 +8542,7 @@ Item* TABLE_LIST::build_pushable_cond_for_table(THD *thd, Item *cond)
 	  return 0;
 	continue;
       }
-      Item *fix= build_pushable_cond_for_table(thd, item);
+      Item *fix= build_pushable_cond_for_table(thd, tab_map, item);
       if (!fix && !cond_and)
 	return 0;
       if (!fix) 

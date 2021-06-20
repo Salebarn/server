@@ -1261,8 +1261,12 @@ bool pushdown_cond_for_derived(THD *thd, Item *cond, TABLE_LIST *derived)
     This condition has to be fixed yet.
   */
   Item *extracted_cond;
-  derived->check_pushable_cond_for_table(cond);
-  extracted_cond= derived->build_pushable_cond_for_table(thd, cond);
+  table_map derived_tbl_bit= derived->table->map;
+  check_pushable_cond_for_table(cond,
+                                [=](Item *cond) {
+                                   return cond->excl_dep_on_table(derived_tbl_bit);
+                                });
+  extracted_cond= build_pushable_cond_for_table(thd, derived_tbl_bit, cond);
   if (!extracted_cond)
   {
     /* Nothing can be pushed into the derived table */
@@ -1287,6 +1291,13 @@ bool pushdown_cond_for_derived(THD *thd, Item *cond, TABLE_LIST *derived)
     if (!sl->join->group_list && !sl->with_sum_func)
     {
       /* extracted_cond_copy is pushed into where of sl */
+      check_pushable_cond_for_table(extracted_cond_copy,
+        [=](Item *cond) {
+          return !cond->walk(&Item::check_non_pushable_processor,
+                             false, (void*)sl);
+        });
+      extracted_cond_copy= build_pushable_cond_for_table(thd, derived_tbl_bit,
+                                                         extracted_cond_copy);
       extracted_cond_copy= extracted_cond_copy->transform(thd,
                                  &Item::derived_field_transformer_for_where,
                                  (uchar*) sl);

@@ -16,6 +16,7 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1335  USA */
 
+#include <functional>
 #include "my_global.h"                          /* NO_EMBEDDED_ACCESS_CHECKS */
 #include "sql_plist.h"
 #include "sql_list.h"                           /* Sql_alloc */
@@ -2534,8 +2535,6 @@ struct TABLE_LIST
     return false;
   } 
   void set_lock_type(THD* thd, enum thr_lock_type lock);
-  void check_pushable_cond_for_table(Item *cond);
-  Item *build_pushable_cond_for_table(THD *thd, Item *cond); 
 
   void remove_join_columns()
   {
@@ -2561,6 +2560,10 @@ private:
   /** See comments for set_table_ref_id() */
   ulong m_table_ref_version;
 };
+
+Item *build_pushable_cond_for_table(THD *thd, table_map tab_map, Item *cond);
+void check_pushable_cond_for_table(Item *cond,
+                                   std::function<bool(Item*)> pushable_filter);
 
 class Item;
 
