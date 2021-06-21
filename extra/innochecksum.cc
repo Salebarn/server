@@ -817,6 +817,16 @@ write_file(
 	return(true);
 }
 
+// checks using current xdes page whether the page is free
+static bool page_is_free(const byte *xdes, page_size_t page_size,
+                         size_t page_no)
+{
+  const byte *des=
+      xdes + XDES_ARR_OFFSET +
+      XDES_SIZE * ((page_no & (page_size.physical() - 1)) / FSP_EXTENT_SIZE);
+  return xdes_get_bit(des, XDES_FREE_BIT, page_no % FSP_EXTENT_SIZE);
+}
+
 /*
 Parse the page and collect/dump the information about page type
 @param [in] page	buffer page
@@ -908,11 +918,7 @@ parse_page(
 				std::map<unsigned long long, per_index_stats>::iterator it;
 				it = index_ids.find(id);
 				per_index_stats &index = (it->second);
-				const byte* des = xdes + XDES_ARR_OFFSET
-					+ XDES_SIZE * ((page_no & (page_size.physical() - 1))
-						/ FSP_EXTENT_SIZE);
-				if (xdes_get_bit(des, XDES_FREE_BIT,
-						page_no % FSP_EXTENT_SIZE)) {
+				if (page_is_free(xdes, page_size, page_no)) {
 					index.free_pages++;
 					return;
 				}
@@ -1072,7 +1078,6 @@ parse_page(
 
 	case FIL_PAGE_TYPE_FSP_HDR:
 		page_type.n_fil_page_type_fsp_hdr++;
-		memcpy(xdes, page, page_size.physical());
 		if (page_type_dump) {
 			fprintf(file, "#::%llu\t\t|\t\tFile Space "
 				"Header\t\t|\t%s\n", cur_page_num, str);
@@ -1081,7 +1086,6 @@ parse_page(
 
 	case FIL_PAGE_TYPE_XDES:
 		page_type.n_fil_page_type_xdes++;
-		memcpy(xdes, page, page_size.physical());
 		if (page_type_dump) {
 			fprintf(file, "#::%llu\t\t|\t\tExtent descriptor "
 				"page\t\t|\t%s\n", cur_page_num, str);
@@ -1744,6 +1748,12 @@ int main(
 		from fsp_flags and encryption metadata from page 0 */
 		const page_size_t&	page_size = get_page_size(buf);
 
+		if (mach_read_from_2(buf + FIL_PAGE_TYPE) != FIL_PAGE_TYPE_FSP_HDR) {
+			fprintf(stderr, "current file is not the first space file"
+				" - can not proceed further\n");
+			goto my_exit;
+		}
+
 		ulint flags = mach_read_from_4(FSP_HEADER_OFFSET + FSP_SPACE_FLAGS + buf);
 		ulint zip_size = page_size.is_compressed() ? page_size.logical() : 0;
 		logical_page_size = page_size.is_compressed() ? zip_size : 0;
@@ -1813,6 +1823,8 @@ int main(
 		if (per_page_details) {
 			printf("page %llu ", cur_page_num);
 		}
+
+		memcpy(xdes, buf, physical_page_size);
 
 		if (page_type_summary || page_type_dump) {
 			parse_page(buf, xdes, fil_page_type, page_size, is_encrypted);
@@ -1992,6 +2004,7 @@ first_non_zero:
 			/* If no-check is enabled, skip the
 			checksum verification.*/
 			if (!no_check
+			    && !page_is_free(xdes, page_size, cur_page_num)
 			    && !skip_page
 			    && (exit_status = verify_checksum(
 						buf, page_size,
@@ -2012,6 +2025,10 @@ first_non_zero:
 
 			if (per_page_details) {
 				printf("page %llu ", cur_page_num);
+			}
+
+			if (page_get_page_no(buf) % physical_page_size == 0) {
+				memcpy(xdes, buf, physical_page_size);
 			}
 
 			if (page_type_summary || page_type_dump) {
