@@ -812,9 +812,26 @@ DROP TABLE t1;
 
 --echo # MDEV-19011 Assertion `file->s->base.reclength < file->s->vreclength'
 --echo # failed in ha_myisam::setup_vcols_for_repair
-CREATE TABLE t1 (a INT GENERATED ALWAYS AS (1) VIRTUAL) ENGINE=MyISAM;
+CREATE TABLE t1 (a INT GENERATED ALWAYS AS (1) VIRTUAL);
 ALTER TABLE t1 ADD KEY (a);
 
 DROP TABLE t1;
+
+CREATE TABLE t1 ( 
+  pk BIGINT AUTO_INCREMENT,
+  b BIT(15),
+  v BIT(10) AS (b) VIRTUAL,
+  PRIMARY KEY(pk),
+  UNIQUE(v)
+);
+ 
+INSERT IGNORE INTO t1 (b) VALUES (b'101110001110100'),(b'011101');
+SELECT pk, b FROM t1 INTO OUTFILE 'load.data';
+LOAD DATA INFILE 'load.data' REPLACE INTO TABLE t1 (pk, b);
+ 
+# Cleanup
+DROP TABLE t1;
+--let $datadir= `SELECT @@datadir`
+--remove_file $datadir/test/load.data
 
 }
