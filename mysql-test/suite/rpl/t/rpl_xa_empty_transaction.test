@@ -1,0 +1,38 @@
+#
+# Purpose:
+#
+#  If an XA transaction doesn't result in any changes, this test
+# ensures that no XA events are written into the binlog
+#
+#
+# Methodology:
+#
+#  Commit and empty XA transaction and validate that the binlog
+# does not have any statements relating to the transaction. To
+# create the empty XA transaction, use a body with a single
+# statement that results in an error.
+#
+#
+# References:
+#  MDEV-25616: Binlog event for XA COMMIT is generated without
+#              matching XA START, replication aborts
+#
+--source include/master-slave.inc
+--source include/have_innodb.inc
+--source include/have_binlog_format_row.inc
+
+CREATE TABLE t1 (a INT PRIMARY KEY) engine=innodb;
+
+XA START 'x';
+--error ER_DUP_ENTRY
+INSERT INTO t1 VALUES (1),(1);
+XA END 'x';
+XA PREPARE 'x';
+XA COMMIT 'x';
+
+--source include/rpl_show_binlog_events.inc
+
+# Cleanup
+--connection master
+DROP TABLE t1;
+--source include/rpl_end.inc

@@ -591,6 +591,9 @@ public:
   /* Set if we get an error during commit that must be returned from unlog(). */
   bool delayed_error;
 
+  /* Used to keep binlog consistent if XA transaction is empty */
+  bool xa_trx_was_empty;
+
 private:
 
   binlog_cache_mngr& operator=(const binlog_cache_mngr& info);
@@ -2182,6 +2185,8 @@ static int binlog_commit(handlerton *hton, THD *thd, bool all)
       we're here because cache_log was flushed in MYSQL_BIN_LOG::log_xid()
     */
     cache_mngr->reset(false, true);
+    cache_mngr->xa_trx_was_empty = (thd->transaction->xid_state.get_state_code() == XA_IDLE);
+
     THD_STAGE_INFO(thd, org_stage);
     DBUG_RETURN(error);
   }
@@ -2192,7 +2197,7 @@ static int binlog_commit(handlerton *hton, THD *thd, bool all)
      - We are in a transaction and a full transaction is committed.
     Otherwise, we accumulate the changes.
   */
-  if (likely(!error) && ending_trans(thd, all))
+  if (likely(!error) && ending_trans(thd, all) && !cache_mngr->xa_trx_was_empty)
   {
     error= is_preparing_xa(thd) ?
       binlog_commit_flush_xa_prepare(thd, all, cache_mngr) :
