@@ -535,7 +535,7 @@ while true ; do
     else
         echo "You already have your user account protected (unix_socket auth and password set, or password impossible to use), so you can safely answer 'n'."
         echo
-        echo $echo_n "Set the user: $user password? [y/N] $echo_c"
+        echo $echo_n "Set the user: $user password? [Y/n] $echo_c"
 	defsetpass=N
     fi
     read reply
