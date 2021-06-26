@@ -3089,8 +3089,8 @@ DROP TABLE t1;
 #
 # Collations
 #
-CREATE TABLE t1 (a VARCHAR(20) CHARACTER SET latin1 DEFAULT CONCAT('ö')) CHARACTER SET koi8r COLLATE koi8r_bin;
-ERROR 22007: Encountered illegal value 'ö' when converting to koi8r
+CREATE TABLE t1 (a VARCHAR(20) CHARACTER SET latin1 DEFAULT CONCAT('ï¿½')) CHARACTER SET koi8r COLLATE koi8r_bin;
+ERROR 22007: Encountered illegal value 'ï¿½' when converting to koi8r
 CREATE OR REPLACE TABLE t1 (a char(2) default concat('A') COLLATE utf8mb4_unicode_ci);
 SHOW CREATE TABLE t1;
 Table	Create Table
@@ -3396,4 +3396,26 @@ CREATE OR REPLACE TABLE t1(i int);
 ALTER TABLE t1 ADD b CHAR(255) DEFAULT `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`;
 ERROR 42S22: Unknown column 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' in 'DEFAULT'
 DROP TABLE t1;
+#
+# MDEV-23597 Assertion `marked_for_read()' failed while evaluating DEFAULT
+#
+CREATE TABLE t1 (a INT UNIQUE, b INT DEFAULT (c+1), c int);
+INSERT INTO t1 VALUES (1,1,1);
+UPDATE t1 SET b=DEFAULT;
+SELECT * from t1;
+a	b	c
+1	2	1
+REPLACE t1 VALUES(1,1,1);
+INSERT INTO t1 VALUES (1,1,1) ON DUPLICATE KEY UPDATE b= DEFAULT;
+SELECT * from t1;
+a	b	c
+1	2	1
+REPLACE t1 VALUES(1,1,1);
+CREATE TABLE t2 (a INT, b INT DEFAULT (c+1), c int);
+INSERT INTO t2 VALUES (5,5,5);
+UPDATE t1 join t2 set t1.b= DEFAULT, t2.b= DEFAULT;
+SELECT * from t1, t2;
+a	b	c	a	b	c
+1	2	1	5	6	5
+DROP TABLE t1, t2;
 # end of 10.2 test

@@ -1855,7 +1855,7 @@ DROP TABLE t1;
 --echo #
 
 --error ER_BAD_DATA
-CREATE TABLE t1 (a VARCHAR(20) CHARACTER SET latin1 DEFAULT CONCAT('ö')) CHARACTER SET koi8r COLLATE koi8r_bin;
+CREATE TABLE t1 (a VARCHAR(20) CHARACTER SET latin1 DEFAULT CONCAT('ï¿½')) CHARACTER SET koi8r COLLATE koi8r_bin;
 CREATE OR REPLACE TABLE t1 (a char(2) default concat('A') COLLATE utf8mb4_unicode_ci);
 SHOW CREATE TABLE t1;
 DROP TABLE t1;
@@ -2108,6 +2108,27 @@ CREATE OR REPLACE TABLE t1(i int);
 --error ER_BAD_FIELD_ERROR
 ALTER TABLE t1 ADD b CHAR(255) DEFAULT `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`;
 DROP TABLE t1;
+
+
+--echo #
+--echo # MDEV-23597 Assertion `marked_for_read()' failed while evaluating DEFAULT
+--echo #
+CREATE TABLE t1 (a INT UNIQUE, b INT DEFAULT (c+1), c int);
+INSERT INTO t1 VALUES (1,1,1);
+UPDATE t1 SET b=DEFAULT;
+SELECT * from t1;
+
+REPLACE t1 VALUES(1,1,1);
+INSERT INTO t1 VALUES (1,1,1) ON DUPLICATE KEY UPDATE b= DEFAULT;
+SELECT * from t1;
+
+REPLACE t1 VALUES(1,1,1);
+CREATE TABLE t2 (a INT, b INT DEFAULT (c+1), c int);
+INSERT INTO t2 VALUES (5,5,5);
+UPDATE t1 join t2 set t1.b= DEFAULT, t2.b= DEFAULT;
+SELECT * from t1, t2;
+
+DROP TABLE t1, t2;
 
 
 --echo # end of 10.2 test

@@ -1713,6 +1713,7 @@ public:
   virtual bool limit_index_condition_pushdown_processor(void *arg) { return 0; }
   virtual bool exists2in_processor(void *arg) { return 0; }
   virtual bool find_selective_predicates_list_processor(void *arg) { return 0; }
+  virtual bool enchant_default_with_arg_processor(void *arg) { return 0; }
   bool cleanup_is_expensive_cache_processor(void *arg)
   {
     is_expensive_cache= (int8)(-1);
@@ -5495,6 +5496,7 @@ public:
   Item_field *field_for_view_update() { return 0; }
   bool update_vcol_processor(void *arg) { return 0; }
   bool check_func_default_processor(void *arg) { return true; }
+  bool enchant_default_with_arg_processor(void *arg);
 
   bool walk(Item_processor processor, bool walk_subquery, void *args)
   {
