@@ -24,8 +24,8 @@
 static my_bool     ssl_algorithms_added    = FALSE;
 static my_bool     ssl_error_strings_loaded= FALSE;
 
+#ifndef SSL_CTRL_SET_DH_AUTO
 /* the function below was generated with "openssl dhparam -2 -C 2048" */
-
 static
 DH *get_dh2048()
 {
@@ -72,6 +72,7 @@ DH *get_dh2048()
     }
     return dh;
 }
+#endif
 
 static const char*
 ssl_error_string[] =
@@ -337,6 +338,9 @@ new_VioSSLFd(const char *key_file, const char *cert_file,
   /* DH stuff */
   if (!is_client_method)
   {
+#ifdef SSL_CTRL_SET_DH_AUTO
+    SSL_CTX_set_dh_auto(ssl_fd->ssl_context, 1);
+#else
     dh=get_dh2048();
     if (!SSL_CTX_set_tmp_dh(ssl_fd->ssl_context, dh))
     {
@@ -345,6 +349,7 @@ new_VioSSLFd(const char *key_file, const char *cert_file,
     }
 
     DH_free(dh);
+#endif
   }
 
 #ifdef HAVE_WOLFSSL
@@ -357,8 +362,10 @@ new_VioSSLFd(const char *key_file, const char *cert_file,
 
   DBUG_RETURN(ssl_fd);
 
+#ifndef SSL_CTRL_SET_DH_AUTO
 err3:
   DH_free(dh);
+#endif
 err2:
   SSL_CTX_free(ssl_fd->ssl_context);
 err1:
@@ -367,7 +374,6 @@ err0:
   DBUG_EXECUTE("error", ERR_print_errors_fp(DBUG_FILE););
   DBUG_RETURN(0);
 }
-
 
 /************************ VioSSLConnectorFd **********************************/
 struct st_VioSSLFd *
