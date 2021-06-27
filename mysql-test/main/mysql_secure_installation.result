@@ -1,10 +1,20 @@
+CREATE USER foobar@localhost IDENTIFIED BY "bar";
+GRANT ALL PRIVILEGES ON *.* TO foobar@localhost;
 SELECT user,host FROM mysql.global_priv ORDER BY user,host;
 user	host
+foobar	localhost
 mariadb.sys	localhost
 root	127.0.0.1
 root	::1
 root	anel
 root	localhost
+SHOW DATABASES;
+Database
+information_schema
+mtr
+mysql
+performance_schema
+test
 
 NOTE: RUNNING ALL PARTS OF THIS SCRIPT IS RECOMMENDED FOR ALL MariaDB
       SERVERS IN PRODUCTION USE!  PLEASE READ EACH STEP CAREFULLY!
@@ -14,18 +24,13 @@ password for a privileged user. If you've just installed MariaDB, and
 haven't set a privileged password yet, you should just press enter here.
 
 For which user do you want to specify a password (press enter for USERNAME): 
-Enter current password for user rootnnUSERNAMEnYnsecretnsecretnYnnn (enter for none): 
-Only privileged user can make changes to mysql DB.
-For which user do you want to specify a password (press enter for USERNAME): 
-.my.output.47113
-1
+Enter current password for user foobar (enter for none): 
 OK, successfully used password, moving on...
 
-User: USERNAME and 1
 
-You already have your user account protected (unix_socket auth and password set, or password impossible to use), so you can safely answer 'n'.
-
-Set the user: USERNAME password? [Y/n]  ... skipping.
+Set user: foobar password? [Y/n] New password: 
+Re-enter new password: 
+Password updated successfully!
 
 By default, a MariaDB installation has an anonymous user, allowing anyone
 to log into MariaDB without having to have a user account created for
@@ -61,11 +66,9 @@ information_schema
 mtr
 mysql
 performance_schema
-test
 SELECT user,host FROM mysql.global_priv ORDER BY user,host;
 user	host
+foobar	localhost
 mariadb.sys	localhost
-root	127.0.0.1
-root	::1
-root	anel
 root	localhost
+DROP USER foobar@localhost;

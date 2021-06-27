@@ -1,15 +1,28 @@
 --source include/not_windows.inc
 
+CREATE USER foobar@localhost IDENTIFIED BY "bar";
+GRANT ALL PRIVILEGES ON *.* TO foobar@localhost;
 SELECT user,host FROM mysql.global_priv ORDER BY user,host;
+SHOW DATABASES;
 
---replace_result $USER USERNAME
 # Creating a temporary text file.
---write_file $MYSQL_TMP_DIR/mariadb-secure-installation.txt
-root\n\nanel\nY\nsecret\nsecret\nY\n\n\n
+--write_file $MYSQLTEST_VARDIR/tmp/mariadb_secure_installation.txt
+foobar
+bar
+Y
+secret
+secret
+Y
+
+
 EOF
 
---exec $MYSQL_SECURE_INSTALLATION < $MYSQL_TMP_DIR/mariadb-secure-installation.txt 
+
+--replace_result $USER USERNAME
+--exec $MYSQL_SECURE_INSTALLATION -S $MASTER_MYSOCK< $MYSQLTEST_VARDIR/tmp/mariadb_secure_installation.txt
 
 SHOW DATABASES;
 SELECT user,host FROM mysql.global_priv ORDER BY user,host;
+DROP USER foobar@localhost;
 
+--remove_file $MYSQLTEST_VARDIR/tmp/mariadb_secure_installation.txt
