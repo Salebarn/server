@@ -2096,7 +2096,7 @@ err_exit:
 						     FIL_TYPE_TABLESPACE,
 						     crypt_data, mode)) {
 		fil_node_t* node = space->add(path, file, size, false, true);
-		node->find_metadata(file, true);
+		IF_WIN(node->find_metadata(), node->find_metadata(file, true));
 		mtr.start();
 		mtr.set_named_space(space);
 		fsp_header_init(space, size, &mtr);
